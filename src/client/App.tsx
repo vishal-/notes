@@ -17,7 +17,10 @@ import {
   FileText,
   Loader2,
   Check,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  ArrowLeft,
+  X
 } from 'lucide-react'
 
 function GithubIcon({ size = 20 }: { size?: number }) {
@@ -44,6 +47,8 @@ export default function App() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [title, setTitle] = useState<string>('')
   const [content, setContent] = useState<string>('')
+  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list')
   
   const [loadingUser, setLoadingUser] = useState<boolean>(true)
   const [loadingNotes, setLoadingNotes] = useState<boolean>(false)
@@ -53,6 +58,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
 
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // 1. Initial auth check
   useEffect(() => {
@@ -82,6 +88,7 @@ export default function App() {
         setSelectedNoteId(data[0].id)
         setTitle(data[0].title)
         setContent(data[0].content)
+        setIsEditing(false)
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load notes')
@@ -90,16 +97,18 @@ export default function App() {
     }
   }
 
-  // 3. Handle note selection
+  // 3. Handle note selection (read-only by default)
   function handleSelectNote(note: Note) {
     setSelectedNoteId(note.id)
     setTitle(note.title)
     setContent(note.content)
+    setIsEditing(false)
     setSavedSuccess(false)
     setError(null)
+    setMobileView('detail')
   }
 
-  // 4. Create new note
+  // 4. Create new note (enters edit mode immediately)
   async function handleCreateNote() {
     setError(null)
     setSaving(true)
@@ -112,7 +121,9 @@ export default function App() {
       setSelectedNoteId(newNote.id)
       setTitle(newNote.title)
       setContent(newNote.content)
+      setIsEditing(true)
       setSavedSuccess(false)
+      setMobileView('detail')
       setTimeout(() => {
         titleInputRef.current?.focus()
         titleInputRef.current?.select()
@@ -124,7 +135,26 @@ export default function App() {
     }
   }
 
-  // 5. Save selected note
+  // 5. Enter edit mode
+  function handleStartEditing() {
+    setIsEditing(true)
+    setSavedSuccess(false)
+    setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 50)
+  }
+
+  // 6. Cancel edit mode
+  function handleCancelEdit() {
+    if (selectedNote) {
+      setTitle(selectedNote.title)
+      setContent(selectedNote.content)
+    }
+    setIsEditing(false)
+    setError(null)
+  }
+
+  // 7. Save selected note
   async function handleSaveNote() {
     if (!selectedNoteId) return
     setError(null)
@@ -137,13 +167,15 @@ export default function App() {
         content
       })
       setTitle(updated.title)
+      setContent(updated.content)
       setNotes((prev) =>
         prev
           .map((n) => (n.id === updated.id ? updated : n))
           .sort((a, b) => b.updatedAt - a.updatedAt)
       )
+      setIsEditing(false)
       setSavedSuccess(true)
-      setTimeout(() => setSavedSuccess(false), 2000)
+      setTimeout(() => setSavedSuccess(false), 2500)
     } catch (err: any) {
       setError(err.message || 'Failed to save note')
     } finally {
@@ -151,7 +183,7 @@ export default function App() {
     }
   }
 
-  // 6. Delete selected note
+  // 8. Delete selected note
   async function handleDeleteNote() {
     if (!selectedNoteId) return
     if (!window.confirm('Are you sure you want to delete this note?')) return
@@ -167,10 +199,13 @@ export default function App() {
         setSelectedNoteId(remaining[0].id)
         setTitle(remaining[0].title)
         setContent(remaining[0].content)
+        setIsEditing(false)
       } else {
         setSelectedNoteId(null)
         setTitle('')
         setContent('')
+        setIsEditing(false)
+        setMobileView('list')
       }
     } catch (err: any) {
       setError(err.message || 'Failed to delete note')
@@ -179,17 +214,19 @@ export default function App() {
     }
   }
 
-  // 7. Keyboard shortcut Ctrl/Cmd + S
+  // 9. Keyboard shortcut Ctrl/Cmd + S to save
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        handleSaveNote()
+        if (isEditing) {
+          handleSaveNote()
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedNoteId, title, content])
+  }, [selectedNoteId, title, content, isEditing])
 
   // Current selected note object
   const selectedNote = notes.find((n) => n.id === selectedNoteId)
@@ -227,9 +264,9 @@ export default function App() {
     )
   }
 
-  // Authenticated: Two-Column Notes App
+  // Authenticated: Two-Column Responsive Notes App
   return (
-    <div className="app-container">
+    <div className={`app-container mobile-view-${mobileView}`}>
       {/* LEFT COLUMN: Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -299,7 +336,7 @@ export default function App() {
                   day: 'numeric'
                 }
               )
-              const preview = note.content.trim() || 'No additional text'
+              const preview = note.content.trim() || 'No content'
 
               return (
                 <div
@@ -321,22 +358,40 @@ export default function App() {
         </div>
       </aside>
 
-      {/* RIGHT COLUMN: Note Editor */}
+      {/* RIGHT COLUMN: Note Viewer & Editor */}
       <main className="editor-container">
         {selectedNote ? (
           <div className="editor-wrapper">
             <header className="editor-header">
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
-                  setSavedSuccess(false)
-                }}
-                placeholder="Note title..."
-                className="title-input"
-              />
+              <div className="editor-header-left">
+                {/* Mobile back to list button */}
+                <button
+                  onClick={() => setMobileView('list')}
+                  className="icon-btn mobile-back-btn"
+                  title="Back to notes"
+                  aria-label="Back to notes list"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+
+                {isEditing ? (
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value)
+                      setSavedSuccess(false)
+                    }}
+                    placeholder="Note title..."
+                    className="title-input"
+                  />
+                ) : (
+                  <h2 className="title-display">
+                    {selectedNote.title || 'Untitled Note'}
+                  </h2>
+                )}
+              </div>
 
               <div className="editor-controls">
                 {savedSuccess && (
@@ -344,25 +399,48 @@ export default function App() {
                     <Check size={14} /> Saved
                   </span>
                 )}
-                {isDirty && !savedSuccess && (
+                {isEditing && isDirty && !savedSuccess && (
                   <span className="status-badge status-unsaved">
                     Unsaved
                   </span>
                 )}
 
-                <button
-                  onClick={handleSaveNote}
-                  disabled={saving || !isDirty}
-                  className="btn btn-save"
-                  title="Save (Ctrl+S)"
-                >
-                  {saving ? (
-                    <Loader2 size={16} className="spinner" />
-                  ) : (
-                    <Save size={16} />
-                  )}
-                  <span>Save</span>
-                </button>
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={handleSaveNote}
+                      disabled={saving}
+                      className="btn btn-save"
+                      title="Save (Ctrl+S)"
+                    >
+                      {saving ? (
+                        <Loader2 size={16} className="spinner" />
+                      ) : (
+                        <Save size={16} />
+                      )}
+                      <span>Save</span>
+                    </button>
+
+                    <button
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      className="btn btn-cancel"
+                      title="Cancel edit"
+                    >
+                      <X size={16} />
+                      <span>Cancel</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleStartEditing}
+                    className="btn btn-edit"
+                    title="Edit note"
+                  >
+                    <Pencil size={16} />
+                    <span>Edit</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleDeleteNote}
@@ -375,22 +453,54 @@ export default function App() {
                   ) : (
                     <Trash2 size={16} />
                   )}
-                  <span>Delete</span>
+                  <span className="btn-label-desktop">Delete</span>
                 </button>
               </div>
             </header>
 
             <div className="editor-body">
-              <textarea
-                value={content}
-                onChange={(e) => {
-                  setContent(e.target.value)
-                  setSavedSuccess(false)
-                }}
-                placeholder="Start writing your thoughts..."
-                className="note-textarea"
-                autoFocus
-              />
+              {isEditing ? (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value)
+                    setSavedSuccess(false)
+                  }}
+                  placeholder="Start writing your thoughts..."
+                  className="note-textarea"
+                />
+              ) : (
+                <div className="note-readonly-view">
+                  <div className="note-meta-info">
+                    <span>
+                      Updated{' '}
+                      {new Date(selectedNote.updatedAt).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  {selectedNote.content.trim() ? (
+                    <div className="note-readonly-content">
+                      {selectedNote.content}
+                    </div>
+                  ) : (
+                    <div className="note-empty-content">
+                      <p>This note is empty.</p>
+                      <button
+                        onClick={handleStartEditing}
+                        className="btn btn-edit-sm"
+                      >
+                        <Pencil size={14} />
+                        <span>Add Content</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
