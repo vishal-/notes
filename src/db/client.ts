@@ -1,0 +1,13 @@
+import { createClient } from '@libsql/client/web'
+import { drizzle } from 'drizzle-orm/libsql'
+import * as schema from './schema'
+
+export function getDb(url: string, authToken?: string) {
+  const client = createClient({
+    url,
+    authToken
+  })
+  return drizzle(client, { schema })
+}
+
+export type Db = ReturnType<typeof getDb>
