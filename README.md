@@ -1,43 +1,27 @@
-# One-Day Notes App
+# Notes
 
-A clean, fast personal notes application built with:
-* **React** + **Vite** + **TypeScript**
-* **Hono** on **Cloudflare Workers**
-* **Turso (libSQL)** + **Drizzle ORM**
-* Direct **GitHub OAuth** (HttpOnly sessions, no JWTs)
+A fast, distraction-free personal note-taking application designed for simplicity, focus, and speed.
 
 ---
 
-## Setup & Running
+## ✨ Features
 
-### 1. Configure Environment Variables
-Copy `.env.example` to `.env` and `.dev.vars`:
+* **Sign in with GitHub**: Quick, secure authentication with your GitHub account.
+* **Distraction-Free Writing**: Clean interface focused purely on your thoughts and ideas.
+* **Read-Only by Default**: View your notes in a clean reading mode without accidental edits; click **Edit** whenever you're ready to make changes.
+* **Fast Note Management**:
+  * Create new notes instantly.
+  * Update note titles and contents with keyboard shortcuts (`Ctrl+S` / `Cmd+S`).
+  * Delete notes with automatic selection of the next available note.
+* **Mobile & Desktop Friendly**: Responsive design with two-column layout on desktop and seamless screen transitions on mobile devices.
+* **Installable (PWA)**: Install the app directly to your home screen or desktop for a native app experience.
 
-```bash
-# In .env and .dev.vars:
-GITHUB_CLIENT_ID=your_github_oauth_client_id
-GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
-TURSO_DATABASE_URL=libsql://your-database-name-user.turso.io
-TURSO_AUTH_TOKEN=your_turso_auth_token
-SESSION_SECRET=a_random_32_character_secret_key
-```
+---
 
-> **Note for GitHub OAuth**: Set Authorization callback URL to:
-> `http://localhost:5173/auth/github/callback` (or your production worker URL).
+## 📖 How to Use
 
-### 2. Push Database Schema to Turso
-```bash
-npm run db:push
-```
-
-### 3. Start Local Development
-```bash
-npm run dev
-```
-Open `http://localhost:5173` in your browser.
-
-### 4. Build / Deploy
-```bash
-npm run build
-npm run deploy
-```
+1. **Sign In**: Click **Sign in with GitHub** to access your personal workspace.
+2. **Create a Note**: Click **+ New Note** to start writing immediately.
+3. **Edit & Save**: Click **Edit** to modify your note, then press **Save** (or `Ctrl+S` / `Cmd+S`) to save your changes.
+4. **Switch Notes**: Select any note from the list on the left to read or edit.
+5. **Delete**: Click **Delete** on any note you no longer need.
