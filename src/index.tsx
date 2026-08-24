@@ -1,17 +1,24 @@
 import { Hono } from 'hono'
-import { getDb } from './db/client'
+import { getDb, ensureTables } from './db/client'
 import { authApp } from './server/auth'
 import { apiApp } from './server/notes'
 import type { AppEnv } from './server/types'
 
 const app = new Hono<AppEnv>()
 
-// DB initialization middleware
+// DB initialization and automatic table creation middleware
 app.use('*', async (c, next) => {
   const dbUrl = c.env.TURSO_DATABASE_URL || (process.env.TURSO_DATABASE_URL as string) || 'file:local.db'
   const authToken = c.env.TURSO_AUTH_TOKEN || (process.env.TURSO_AUTH_TOKEN as string)
-  const db = getDb(dbUrl, authToken)
+  const { db, client } = getDb(dbUrl, authToken)
   c.set('db', db)
+
+  try {
+    await ensureTables(client)
+  } catch (err) {
+    console.error('Error ensuring database tables exist:', err)
+  }
+
   await next()
 })
 
