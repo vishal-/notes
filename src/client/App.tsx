@@ -248,9 +248,13 @@ export default function App() {
     return (
       <div className="center-screen">
         <div className="login-card">
-          <div className="brand-badge">
-            <FileText size={24} />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Notes App Logo"
+            className="app-login-logo"
+            width={64}
+            height={64}
+          />
           <h1>Notes</h1>
           <p className="subtitle">
             A fast, distraction-free personal note-taking app.
@@ -270,6 +274,17 @@ export default function App() {
       {/* LEFT COLUMN: Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
+          <div className="brand-header">
+            <img
+              src="/logo.png"
+              alt="Notes Logo"
+              className="brand-logo"
+              width={28}
+              height={28}
+            />
+            <span className="brand-title">Notes</span>
+          </div>
+
           <div className="user-profile">
             {user.avatarUrl ? (
               <img
@@ -286,15 +301,15 @@ export default function App() {
               <span className="user-name">{user.name || user.username}</span>
               <span className="user-handle">@{user.username}</span>
             </div>
+            <button
+              onClick={() => logout()}
+              className="icon-btn logout-btn"
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-          <button
-            onClick={() => logout()}
-            className="icon-btn"
-            title="Sign out"
-            aria-label="Sign out"
-          >
-            <LogOut size={18} />
-          </button>
         </div>
 
         <div className="sidebar-actions">
@@ -356,6 +371,17 @@ export default function App() {
             })
           )}
         </div>
+
+        {/* Mobile floating action button for quick creation */}
+        <button
+          onClick={handleCreateNote}
+          disabled={saving}
+          className="mobile-fab"
+          title="Create note"
+          aria-label="Create note"
+        >
+          <Plus size={24} />
+        </button>
       </aside>
 
       {/* RIGHT COLUMN: Note Viewer & Editor */}
@@ -368,10 +394,10 @@ export default function App() {
                 <button
                   onClick={() => setMobileView('list')}
                   className="icon-btn mobile-back-btn"
-                  title="Back to notes"
+                  title="Back to notes list"
                   aria-label="Back to notes list"
                 >
-                  <ArrowLeft size={20} />
+                  <ArrowLeft size={18} />
                 </button>
 
                 {isEditing ? (
@@ -395,13 +421,15 @@ export default function App() {
 
               <div className="editor-controls">
                 {savedSuccess && (
-                  <span className="status-badge status-saved">
-                    <Check size={14} /> Saved
+                  <span className="status-badge status-saved" title="Saved">
+                    <Check size={14} />
+                    <span className="status-label">Saved</span>
                   </span>
                 )}
                 {isEditing && isDirty && !savedSuccess && (
-                  <span className="status-badge status-unsaved">
-                    Unsaved
+                  <span className="status-badge status-unsaved" title="Unsaved changes">
+                    <span className="status-dot"></span>
+                    <span className="status-label">Unsaved</span>
                   </span>
                 )}
 
@@ -411,14 +439,15 @@ export default function App() {
                       onClick={handleSaveNote}
                       disabled={saving}
                       className="btn btn-save"
-                      title="Save (Ctrl+S)"
+                      title="Save note (Ctrl+S)"
+                      aria-label="Save note"
                     >
                       {saving ? (
                         <Loader2 size={16} className="spinner" />
                       ) : (
                         <Save size={16} />
                       )}
-                      <span>Save</span>
+                      <span className="btn-label">Save</span>
                     </button>
 
                     <button
@@ -426,9 +455,10 @@ export default function App() {
                       disabled={saving}
                       className="btn btn-cancel"
                       title="Cancel edit"
+                      aria-label="Cancel edit"
                     >
                       <X size={16} />
-                      <span>Cancel</span>
+                      <span className="btn-label">Cancel</span>
                     </button>
                   </>
                 ) : (
@@ -436,9 +466,10 @@ export default function App() {
                     onClick={handleStartEditing}
                     className="btn btn-edit"
                     title="Edit note"
+                    aria-label="Edit note"
                   >
                     <Pencil size={16} />
-                    <span>Edit</span>
+                    <span className="btn-label">Edit</span>
                   </button>
                 )}
 
@@ -447,13 +478,14 @@ export default function App() {
                   disabled={deleting}
                   className="btn btn-delete"
                   title="Delete note"
+                  aria-label="Delete note"
                 >
                   {deleting ? (
                     <Loader2 size={16} className="spinner" />
                   ) : (
                     <Trash2 size={16} />
                   )}
-                  <span className="btn-label-desktop">Delete</span>
+                  <span className="btn-label">Delete</span>
                 </button>
               </div>
             </header>
