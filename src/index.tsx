@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { createMiddleware } from 'hono/factory'
 import { getDb, ensureTables } from './db/client'
 import { authApp } from './server/auth'
 import { apiApp } from './server/notes'
@@ -6,21 +7,33 @@ import type { AppEnv } from './server/types'
 
 const app = new Hono<AppEnv>()
 
-// DB initialization and automatic table creation middleware
-app.use('*', async (c, next) => {
-  const dbUrl = c.env.TURSO_DATABASE_URL || (process.env.TURSO_DATABASE_URL as string) || 'file:local.db'
-  const authToken = c.env.TURSO_AUTH_TOKEN || (process.env.TURSO_AUTH_TOKEN as string)
-  const { db, client } = getDb(dbUrl, authToken)
+// D1 DB initialization and automatic table creation middleware
+const dbMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  if (!c.env.DB) {
+    return c.json(
+      {
+        error:
+          'D1 database binding "DB" is not configured. Please ensure a D1 database is bound to "DB" in wrangler.jsonc or your Cloudflare dashboard.'
+      },
+      500
+    )
+  }
+
+  const db = getDb(c.env.DB)
   c.set('db', db)
 
   try {
-    await ensureTables(client)
+    await ensureTables(c.env.DB)
   } catch (err) {
-    console.error('Error ensuring database tables exist:', err)
+    console.error('Error ensuring database tables exist in D1:', err)
   }
 
   await next()
 })
+
+// Scope DB middleware only to Auth and API routes
+app.use('/auth/*', dbMiddleware)
+app.use('/api/*', dbMiddleware)
 
 // Mount Auth & API routes
 app.route('/auth', authApp)
